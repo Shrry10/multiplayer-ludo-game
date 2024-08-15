@@ -28,19 +28,6 @@ module.exports = {
       );
       const gameid = game.rows[0].id;
 
-      // // Creating new coin table, (FOREIGN KEY (player) REFERENCES gamestate(player) ON DELETE CASCADE ON UPDATE CASCADE) to be added later.
-      // const coin_name = "coin" + gameid;
-      // await pool.query(
-      //   "CREATE TABLE $1 (id SERIAL PRIMARY KEY, player INTEGER NOT NULL, position INTEGER NOT NULL DEFAULT -1, in_home INTEGER NOT NULL DEFAULT 0, game_id INTEGER NOT NULL);",
-      //   [coin_name]
-      // );
-
-      // // New 4 Entry to coin table
-      // await pool.query(
-      //   "INSERT INTO $1 (player, game_id) VALUES (1, $2), (1, $2), (1, $2), (1, $2);",
-      //   [coin_name, gameid]
-      // );
-
       // New Entry in Player Record
       const player = await pool.query(
         "INSERT INTO player (user_id, game_id, color, join_ts) VALUES ($1, $2, $3, EXTRACT(EPOCH FROM NOW())) RETURNING *;",
@@ -84,13 +71,6 @@ module.exports = {
         return;
       }
       const gameid = gameInfo.rows[0].id;
-
-      // New 4 Entry to coin table
-      // const coin_name = "coin" + gameid;
-      // await pool.query(
-      //   "INSERT INTO $1 (player, game_id) VALUES ($2, $3), ($2, $3), ($2, $3), ($2, $3);",
-      //   [coin_name, players_now, gameid]
-      // );
 
       // New Entry in Player Record
       const countInfo = await pool.query(

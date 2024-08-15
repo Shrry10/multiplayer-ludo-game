@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const authenticate = require("./routes/authRoute");
 const lobby = require("./routes/lobbyRoute");
+const game = require("./routes/gameRoute");
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
 });
 app.use("/authentication", authenticate);
 app.use("/lobby", lobby);
+app.use("/game", game);
 
 const port = 3000;
 app.listen(port, () => {
