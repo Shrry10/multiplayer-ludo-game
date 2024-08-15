@@ -14,9 +14,10 @@ module.exports = {
         playerInfo.rows.length !== 0 &&
         playerInfo.rows[0].status == "in-progress"
       ) {
-        res
-          .status(500)
-          .json({ message: "user already in a game" }, playerInfo.rows[0]);
+        res.status(409).json({
+          message: "conflict! user already in a game",
+          playerDetails: playerInfo.rows[0],
+        });
       }
 
       // New Entry in Game Record
@@ -52,7 +53,7 @@ module.exports = {
         game.rows[0]
       );
     } catch (err) {
-      console.error(err);
+      res.status(err.status).json({ message: err.message });
     }
   },
   joinGame: async (req, res) => {
@@ -68,9 +69,10 @@ module.exports = {
         playerInfo.rows.length !== 0 &&
         playerInfo.rows[0].status == "in-progress"
       ) {
-        res
-          .status(500)
-          .json({ message: "user already in a game" }, playerInfo.rows[0]);
+        res.status(409).json({
+          message: "conflict! user already in a game",
+          playerDetails: playerInfo.rows[0],
+        });
       }
 
       // checking if there is any game in waiting status.
@@ -78,7 +80,7 @@ module.exports = {
         "SELECT * FROM game WHERE status = 'waiting' ORDER BY create_ts DESC LIMIT 1;"
       );
       if (gameInfo.rows.length === 0) {
-        res.status(404).json({ message: "no games available" });
+        res.status(404).json({ message: "no available games found" });
       }
       const gameid = gameInfo.rows[0].id;
 
@@ -114,7 +116,7 @@ module.exports = {
         .status(200)
         .json({ message: "game joined successfully" }, player.rows[0]);
     } catch (err) {
-      console.error(err);
+      res.status(err.status).json({ message: err.message });
     }
   },
 };
