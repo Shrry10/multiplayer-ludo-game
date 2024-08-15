@@ -18,6 +18,7 @@ module.exports = {
           message: "conflict! user already in a game",
           playerDetails: playerInfo.rows[0],
         });
+        return;
       }
 
       // New Entry in Game Record
@@ -46,12 +47,10 @@ module.exports = {
         [userid, gameid, "red"]
       );
 
-      res.status(201).json(
-        {
-          message: "game created successfully",
-        },
-        game.rows[0]
-      );
+      res.status(201).json({
+        message: "game created successfully",
+        gameDetails: game.rows[0],
+      });
     } catch (err) {
       res.status(err.status).json({ message: err.message });
     }
@@ -73,6 +72,7 @@ module.exports = {
           message: "conflict! user already in a game",
           playerDetails: playerInfo.rows[0],
         });
+        return;
       }
 
       // checking if there is any game in waiting status.
@@ -81,6 +81,7 @@ module.exports = {
       );
       if (gameInfo.rows.length === 0) {
         res.status(404).json({ message: "no available games found" });
+        return;
       }
       const gameid = gameInfo.rows[0].id;
 
