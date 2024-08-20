@@ -79,12 +79,12 @@ module.exports = {
       );
       let color = "";
 
-      if (countInfo.rows[0].count == 1) color = "blue";
+      if (countInfo.rows[0].count == 1) color = "green";
       else if (countInfo.rows[0].count == 2) color = "yellow";
       else {
-        color = "green";
+        color = "blue";
         await pool.query(
-          "UPDATE game SET status = 'ready to start' WHERE id = $1;",
+          "UPDATE game SET status = 'ready-to-start' WHERE id = $1;",
           [gameid]
         );
       }
