@@ -16,9 +16,9 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.get("/", (req, res) => {
-  res.send("WELCOME TO LUDO GAME, REGISTER OR LOG IN");
-});
+// app.get("/", (req, res) => {
+//   res.send("WELCOME TO LUDO GAME, REGISTER OR LOG IN");
+// });
 app.use("/authentication", authenticate);
 app.use("/lobby", lobby);
 app.use("/game", game);

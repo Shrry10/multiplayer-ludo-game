@@ -21,9 +21,36 @@ const changeTurn = async (gameid, playerid) => {
         nextid,
         gameid,
       ]);
-      return;
+      return nextid;
     }
   }
+};
+
+// create another function called movableCoins with boolean return type
+let playerStat = async (gameid, playerid, steps) => {
+  const coinInfo = await pool.query(
+    "SELECT * FROM coin WHERE game_id = $1 AND player = $2 ORDER BY id;",
+    [gameid, playerid]
+  );
+  let coins = coinInfo.rows;
+  let count = 0;
+  // use for each
+  coins.map((coin) => {
+    if (coin.position < 0) {
+      if (steps === 6 && coin.position === -1) {
+        coin.movable = 1;
+        ++count;
+      } else coin.movable = 0;
+    } else {
+      // use braces for single line conditional statements
+      if (coin.in_home === 1 && coin.position + steps > 6) coin.movable = 0;
+      else {
+        coin.movable = 1;
+        ++count;
+      }
+    }
+  });
+  return { movableCoins: count, coins: coins };
 };
 
 module.exports = {
@@ -157,6 +184,7 @@ module.exports = {
         res.status(200).json({
           message: "coin moved to the start",
           coinInfo: update.rows[0],
+          nextTurn: playerid,
         });
         return;
       }
@@ -178,33 +206,37 @@ module.exports = {
             "UPDATE coin SET position = $1 WHERE id = $2 RETURNING *;",
             [curr_pos + steps, coinid]
           );
-          changeTurn(gameid, playerid);
+          let next_plyer_turn = await changeTurn(gameid, playerid);
           res.status(200).json({
             message: `coin moved ${steps} steps`,
             coinInfo: update.rows[0],
+            nextTurn: next_plyer_turn,
           });
           return;
         }
         // if dice rolled exactly the number required to reach 6(finsih)
         else if (curr_pos + steps === 6) {
-          await pool.query(
+          const update = await pool.query(
             "UPDATE coin SET position = -2, in_home = 1 WHERE id = $1;",
             [coinid]
           );
+          let next_plyer_turn = playerid;
           // check if player is finished with coins.
           const coin_home = await pool.query(
             "SELECT COUNT(*) FROM coin WHERE position = -2 AND game_id = $1 AND player = $2;",
             [gameid, playerid]
           );
-          if (coin_home.rows[0].count == 4) {
+          if (coin_home.rows[0].count === 4) {
             await pool.query(
               "UPDATE player SET status = 'finished', leave_ts = EXTRACT(EPOCH FROM NOW()) WHERE game_id = $1 AND user_id = $2;",
               [gameid, coinInfo.rows[0].user_id]
             );
-            changeTurn(gameid, playerid);
+            next_plyer_turn = await changeTurn(gameid, playerid);
           }
           res.status(200).json({
             message: "coin reached finish",
+            coinInfo: update.rows[0],
+            nextTurn: next_plyer_turn,
           });
           return;
         }
@@ -229,19 +261,22 @@ module.exports = {
             "UPDATE coin SET position = $1, in_home = 1 WHERE id = $2 RETURNING *;",
             [curr_pos + steps - to_home, coinid]
           );
-          if (steps !== 6) changeTurn(gameid, playerid);
+          let next_plyer_turn = playerid;
+          if (steps !== 6) next_plyer_turn = await changeTurn(gameid, playerid);
           res.status(200).json({
             message: `coin moved ${steps} steps and entered home path`,
             coinInfo: update.rows[0],
+            nextTurn: next_plyer_turn,
           });
           return;
         }
         // if dice rolled exactly the number required to enter home path and finish
         else if (curr_pos < to_home + 1 && curr_pos + steps === to_home + 6) {
-          await pool.query(
+          const update = await pool.query(
             "UPDATE coin SET position = -2, in_home = 1 WHERE id = $1;",
             [coinid]
           );
+          let next_plyer_turn = playerid;
           // check if player is finished with coins.
           const coin_home = await pool.query(
             "SELECT COUNT(*) FROM coin WHERE position = -2 AND game_id = $1 AND player = $2;",
@@ -252,10 +287,12 @@ module.exports = {
               "UPDATE player SET status = 'finished', leave_ts = EXTRACT(EPOCH FROM NOW()) WHERE game_id = $1 AND user_id = $2;",
               [gameid, coinInfo.rows[0].user_id]
             );
-            changeTurn(gameid, playerid);
+            next_plyer_turn = await changeTurn(gameid, playerid);
           }
           res.status(200).json({
             message: "coin reached finish",
+            coinInfo: update.rows[0],
+            nextTurn: next_plyer_turn,
           });
           return;
         }
@@ -266,6 +303,7 @@ module.exports = {
             "UPDATE coin SET position = $1 WHERE id = $2 RETURNING *;",
             [new_pos, coinid]
           );
+          let next_plyer_turn = playerid;
           // if cuts a coin, update the cut coin
           const cut_coin = await pool.query(
             "UPDATE coin SET position = -1 WHERE in_home = 0 AND game_id = $1 AND player <> $2 AND position = $3 RETURNING *;",
@@ -273,10 +311,11 @@ module.exports = {
           );
           // response if didn't cut a coin
           if (cut_coin.rows.length === 0) {
-            if (steps !== 6) changeTurn(gameid, playerid);
+            if (steps !== 6) next_plyer_turn = await changeTurn(gameid, playerid);
             res.status(200).json({
               message: `coin moved ${steps} steps`,
               coinInfo: update.rows[0],
+              nextTurn: next_plyer_turn,
             });
             return;
           }
@@ -286,6 +325,7 @@ module.exports = {
               message: `coin moved ${steps} steps and cut a coin`,
               coinInfo: update.rows[0],
               cutCoinInfo: cut_coin.rows[0],
+              nextTurn: next_plyer_turn,
             });
             return;
           }
@@ -299,5 +339,58 @@ module.exports = {
       });
       return;
     }
+  },
+  diceRoll: async (req, res) => {
+    const gameid = req.params.gid;
+    // verify if game exists and game is in progress
+    const gameInfo = await pool.query("SELECT * FROM game WHERE id = $1;", [
+      gameid,
+    ]);
+    if (gameInfo.rows.length === 0) {
+      res.status(400).json({
+        message: `bad request! game with id ${gameid} doesn't exist`,
+      });
+      return;
+    }
+    
+    if (gameInfo.rows[0].status !== "in-progress") {
+      res.status(400).json({
+        message: `bad request! game with id ${gameid} has not started`,
+      });
+      return;
+    }
+
+    // change to player number
+    const playerid = req.params.pno;
+    if (playerid < 1 || playerid > 4) {
+      res.status(400).json({
+        message: `bad request! player with id ${playerid} doesn't exist`,
+      });
+      return;
+    }
+
+    // verify if player has the turn
+    const turnInfo = await pool.query(
+      "SELECT * FROM turn WHERE game_id = $1;",
+      [gameid]
+    );
+    if (turnInfo.rows[0].player != playerid) {
+      res.status(400).json({
+        message: `bad request! not player ${playerid}'s turn`,
+      });
+      return;
+    }
+
+    const roll = Math.floor(Math.random() * 6) + 1;
+    const { movableCoins, coins } = await playerStat(gameid, playerid, roll);
+    let next_plyer_turn = playerid;
+    if (movableCoins == 0) next_plyer_turn = await changeTurn(gameid, playerid);
+
+    res.status(200).json({
+      message: `dice rolled ${roll}`, // no need of message
+      value: roll,
+      coins: coins, // remove this line
+      nextTurn: next_plyer_turn, // change name to next_player_turn
+    });
   },
 };
