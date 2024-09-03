@@ -27,10 +27,10 @@ const changeTurn = async (gameid, playerid) => {
 };
 
 // create another function called movableCoins with boolean return type
-let movableCoins = async (gameid, playerid, steps) => {
+let movableCoins = async (gameid, playerno, steps) => {
   const coinInfo = await pool.query(
     "SELECT * FROM coin WHERE game_id = $1 AND player = $2 ORDER BY id;",
-    [gameid, playerid]
+    [gameid, playerno]
   );
   let coins = coinInfo.rows;
   let count = 0;
@@ -53,7 +53,7 @@ let movableCoins = async (gameid, playerid, steps) => {
       }
     }
   });
-  return count === 0 ? true : false;
+  return count !== 0 ? true : false;
 };
 
 module.exports = {
@@ -119,7 +119,7 @@ module.exports = {
     // gameid and coinid in req params, steps in req body
 
     const gameid = req.params.gid;
-    const coinid = req.params.cid;
+    const coinid = req.body.cid;
     const steps = req.body.steps;
 
     // verify if game exists and game is in progress
@@ -366,10 +366,10 @@ module.exports = {
     }
 
     // change to player number
-    const playerid = req.params.pno;
-    if (playerid < 1 || playerid > 4) {
+    const playerno = req.body.playerTurn;
+    if (playerno < 1 || playerno > 4) {
       res.status(400).json({
-        message: `bad request! player with id ${playerid} doesn't exist`,
+        message: `bad request! player with id ${playerno} doesn't exist`,
       });
       return;
     }
@@ -379,23 +379,25 @@ module.exports = {
       "SELECT * FROM turn WHERE game_id = $1;",
       [gameid]
     );
-    if (turnInfo.rows[0].player != playerid) {
+    if (turnInfo.rows[0].player != playerno) {
       res.status(400).json({
-        message: `bad request! not player ${playerid}'s turn`,
+        message: `bad request! not player ${playerno}'s turn`,
       });
       return;
     }
 
     const roll = Math.floor(Math.random() * 6) + 1;
-    const isMovable = await movableCoins(gameid, playerid, roll);
-    let next_player_turn = playerid;
-    if (!isMovable) next_player_turn = await changeTurn(gameid, playerid);
+    const isMovable = await movableCoins(gameid, playerno, roll);
+    let next_player_turn = playerno;
+    if (!isMovable) {
+      next_player_turn = await changeTurn(gameid, playerno);
+    }
 
     res.status(200).json({
       message: `dice rolled ${roll}`, // no need of message
       value: roll,
       // coins: coins, // remove this line
-      nextTurn: next_player_turn, // change name to next_player_turn
+      playerTurn: next_player_turn, // change name to next_player_turn
     });
   },
   gameState: async (req, res) => {
