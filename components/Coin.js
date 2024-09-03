@@ -1,17 +1,19 @@
-const Coin = ({ coin, moveCoin }) => {
-    if (!coin.player_id) return null; // No coin if player_id is null
-  
-    const colors = ['green', 'yellow', 'red', 'blue']; // Player colors
-  
-    return (
-      <div
-        className={`w-8 h-8 rounded-full bg-${colors[coin.player_id - 1]}-500 m-1 flex items-center justify-center cursor-pointer`}
-        onClick={moveCoin}
-      >
-        <span className="text-white text-xs font-bold">{coin.player_id}</span>
-      </div>
-    );
+const Coin = ({ coin, onMoveCoin, steps }) => {
+  const handleClick = () => {
+    onMoveCoin(coin.id, steps); // Call move coin when clicked
   };
-  
-  export default Coin;
-  
+
+  const colors = ["red", "green", "yellow", "blue"];
+  return (
+    <div
+      className={`flex items-center justify-center w-12 h-12 rounded-full`}
+      style={{ backgroundColor: colors[coin.player - 1] }}
+      onClick={handleClick}
+    >
+      <span className="text-white font-bold">C</span>{" "}
+      {/* Coin representation */}
+    </div>
+  );
+};
+
+export default Coin;

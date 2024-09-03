@@ -1,58 +1,92 @@
-import { useState } from 'react';
-import Board from './Board';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import Board from "./Board";
 
 const Game = () => {
-  // Game state: 16 coins (4 for each player), current player, dice value, and a message
-  const [gameState, setGameState] = useState({
-    coins: Array(16).fill({ position: 0, player_id: 1 }),
-    diceState: {
-      green: 5,  // Green player dice value
-      yellow: 3, // Yellow player dice value
-      red: 6,    // Red player dice value
-      blue: 2    // Blue player dice value
+  const [gameState, setGameState] = useState(null); // Holds the game state (positions of all coins)
+  const [currentPlayer, setCurrentPlayer] = useState(null); // Track whose turn it is
+  const [diceValue, setDiceValue] = useState(null); // Track the value of the dice roll
+
+  // Load initial game state on mount
+  useEffect(() => {
+    loadGameState();
+  }, []);
+
+  // Fetches the initial game state from the server
+  const loadGameState = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:5000/game/10/gameState"
+      );
+      setGameState(response.data.coinInfo); // Set positions of all coins
+      setCurrentPlayer(response.data.nextTurn); // Set which player will play next
+    } catch (error) {
+      console.error("Error fetching game state:", error);
     }
-  });
-
-  const [diceState, setDiceState] = useState({
-    value: null,
-    player_id: 1,
-    color: 'red',
-    valid_value: true,
-  });
-
-  // Function to move a coin
-  const moveCoin = (coin_id) => {
-    // Logic to move the coin based on dice value
-    // This function updates gameState and moves the selected coin
-    console.log(`Moving coin ${coin_id}`);
   };
 
-  // Function to roll dice
-  const rollDice = (player_id) => {
-    const newValue = Math.floor(Math.random() * 6) + 1;
-    setDiceState((prev) => ({
-      ...prev,
-      value: newValue,
-      player_id,
-    }));
+  // Handles dice roll
+  const handleDiceRoll = async (playerNo) => {
+    if (currentPlayer !== playerNo) {
+      alert("It's not your turn!");
+      return;
+    }
 
-    // Update message and current player after rolling dice
-    setGameState((prev) => ({
-      ...prev,
-      dice_value: newValue,
-      message: `Player ${player_id} rolled a ${newValue}`,
-    }));
+    try {
+      const response = await axios.post("http://localhost:5000/game/10/dice", {
+        playerTurn: playerNo,
+      });
+      const { value, playerTurn } = response.data;
+
+      setDiceValue(value);
+      if (playerTurn !== playerNo) {
+        setCurrentPlayer(playerTurn); // Switch to next player
+      } else {
+        alert(`You rolled a ${value}, now move a coin!`);
+      }
+    } catch (error) {
+      console.error("Error rolling dice:", error);
+    }
+  };
+
+  // Handles moving a coin
+  const handleMoveCoin = async (coinId, steps) => {
+    try {
+      const response = await axios.put("http://localhost:5000/game/10/update", {
+        cid: coinId,
+        steps: steps,
+      });
+      const { coinInfo, nextTurn } = response.data;
+
+      setGameState((prevGameState) =>
+        prevGameState.map((coin) => (coin.id === coinId ? coinInfo : coin))
+      );
+
+      if (nextTurn === currentPlayer) {
+        alert("You get another turn!");
+      } else {
+        setCurrentPlayer(nextTurn); // Switch to next player
+      }
+    } catch (error) {
+      console.error("Error moving coin:", error);
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-3xl font-bold mb-4">Ludo Game</h1>
+    <div className="game-container flex flex-col items-center">
       <Board
         gameState={gameState}
-        diceState={diceState}
-        moveCoin={moveCoin}
-        rollDice={rollDice}
+        currentPlayer={currentPlayer}
+        diceValue={diceValue}
+        onDiceRoll={handleDiceRoll}
+        onMoveCoin={handleMoveCoin}
       />
+      <button
+        onClick={loadGameState}
+        className="mt-4 p-2 bg-gray-600 text-white rounded"
+      >
+        Update Game State
+      </button>
     </div>
   );
 };
