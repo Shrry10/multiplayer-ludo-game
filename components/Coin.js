@@ -6,7 +6,7 @@ const Coin = ({ coin, onMoveCoin, steps }) => {
   const colors = ["red", "green", "yellow", "blue"];
   return (
     <div
-      className={`flex items-center justify-center w-12 h-12 rounded-full`}
+      className={`flex items-center justify-center w-8 h-8 rounded-full`}
       style={{ backgroundColor: colors[coin.player - 1] }}
       onClick={handleClick}
     >
