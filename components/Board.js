@@ -37,6 +37,127 @@ const Board = ({
     ));
   };
 
+  // Manually set grid positions for the north path (as per the Ludo path)
+  const northGridPositions = [
+    { id: 23, color: "white" },
+    { id: 24, color: "white" },
+    { id: 25, color: "white" },
+    { id: 22, color: "white" },
+    { id: 1, color: "#facc15" },
+    { id: 26, color: "white" },
+    { id: 21, color: "white" },
+    { id: 2, color: "#facc15" },
+    { id: 27, color: "white" },
+    { id: 20, color: "white" },
+    { id: 3, color: "#facc15" },
+    { id: 28, color: "white" },
+    { id: 19, color: "white" },
+    { id: 4, color: "#facc15" },
+    { id: 29, color: "white" },
+    { id: 18, color: "white" },
+    { id: 5, color: "#facc15" },
+    { id: 30, color: "white" },
+  ];
+
+  // Manually set grid positions for the west path (as per the Ludo path)
+  const westGridPositions = [
+    { id: 12, color: "white" },
+    { id: 13, color: "white" },
+    { id: 14, color: "white" },
+    { id: 15, color: "white" },
+    { id: 16, color: "white" },
+    { id: 17, color: "white" },
+    { id: 11, color: "white" },
+    { id: 1, color: "#16a34a" },
+    { id: 2, color: "#16a34a" },
+    { id: 3, color: "#16a34a" },
+    { id: 4, color: "#16a34a" },
+    { id: 5, color: "#16a34a" },
+    { id: 10, color: "white" },
+    { id: 9, color: "white" },
+    { id: 8, color: "white" },
+    { id: 7, color: "white" },
+    { id: 6, color: "white" },
+    { id: 5, color: "white" },
+  ];
+
+  // Manually set grid positions for the east path (as per the Ludo path)
+  const eastGridPositions = [
+    { id: 31, color: "white" },
+    { id: 32, color: "white" },
+    { id: 33, color: "white" },
+    { id: 34, color: "white" },
+    { id: 35, color: "white" },
+    { id: 36, color: "white" },
+    { id: 5, color: "#3b82f6" },
+    { id: 4, color: "#3b82f6" },
+    { id: 3, color: "#3b82f6" },
+    { id: 2, color: "#3b82f6" },
+    { id: 1, color: "#3b82f6" },
+    { id: 37, color: "white" },
+    { id: 43, color: "white" },
+    { id: 42, color: "white" },
+    { id: 41, color: "white" },
+    { id: 40, color: "white" },
+    { id: 39, color: "white" },
+    { id: 38, color: "white" },
+  ];
+
+  // Manually set grid positions for the south path (as per the Ludo path)
+  const southGridPositions = [
+    { id: 4, color: "white" },
+    { id: 5, color: "#dc2626" },
+    { id: 44, color: "white" },
+    { id: 3, color: "white" },
+    { id: 4, color: "#dc2626" },
+    { id: 45, color: "white" },
+    { id: 2, color: "white" },
+    { id: 3, color: "#dc2626" },
+    { id: 46, color: "white" },
+    { id: 1, color: "white" },
+    { id: 2, color: "#dc2626" },
+    { id: 47, color: "white" },
+    { id: 0, color: "white" },
+    { id: 1, color: "#dc2626" },
+    { id: 48, color: "white" },
+    { id: 51, color: "white" },
+    { id: 50, color: "white" },
+    { id: 49, color: "white" },
+  ];
+
+  // Function to find coins at a specific position and render them
+  const renderCoinsInPosition = (position, color) => {
+    let home = color === "white" ? 0 : 1;
+    const colors = ["#dc2626", "#16a34a", "#facc15", "##3b82f6"];
+    const coinsAtPosition = gameState.filter((coin) => {
+      if (home === 1) {
+        return (
+          coin.in_home === home &&
+          colors[coin.player - 1] === color &&
+          coin.position === position
+        );
+      } else {
+        return coin.position == position && coin.in_home == home;
+      }
+    });
+    if (coinsAtPosition.length > 0) {
+      return (
+        <div className="flex space-x-1">
+          {coinsAtPosition.map((coin) => (
+            <Coin
+              key={coin.id}
+              coin={coin}
+              onMoveCoin={onMoveCoin}
+              steps={diceValue}
+              size="w-8 h-8"
+            />
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="flex flex-col items-center">
       {/* Dice holders for each player */}
@@ -62,8 +183,20 @@ const Board = ({
 
         {/* Empty Space */}
         <div className="grid grid-cols-3 grid-rows-6 border-2 border-black gap-0">
-          {[...Array(18)].map((_, i) => (
-            <div key={i} className="border border-black"></div>
+          {northGridPositions.map((pos) => (
+            <div
+              key={pos.id + pos.color}
+              className="relative flex items-center justify-center border border-black"
+              style={{
+                backgroundColor: pos.color, // Apply color based on grid position
+              }}
+            >
+              {/* Show position number in the corner */}
+              {/* <span className="absolute text-xs top-1 left-1">{pos.id}</span> */}
+
+              {/* Render coins if any coin's position matches the grid cell's position */}
+              {renderCoinsInPosition(pos.id, pos.color)}
+            </div>
           ))}
         </div>
 
@@ -74,8 +207,20 @@ const Board = ({
 
         {/* Empty Space Left */}
         <div className="grid grid-cols-6 grid-rows-3 border-2 border-black gap-0">
-          {[...Array(18)].map((_, i) => (
-            <div key={i} className="border border-black"></div>
+          {westGridPositions.map((pos) => (
+            <div
+              key={pos.id + pos.color}
+              className="relative flex items-center justify-center border border-black"
+              style={{
+                backgroundColor: pos.color, // Apply color based on grid position
+              }}
+            >
+              {/* Show position number in the corner */}
+              {/* <span className="absolute text-xs top-1 left-1">{pos.id}</span> */}
+
+              {/* Render coins if any coin's position matches the grid cell's position */}
+              {renderCoinsInPosition(pos.id, pos.color)}
+            </div>
           ))}
         </div>
 
@@ -86,8 +231,20 @@ const Board = ({
 
         {/* Empty Space Right */}
         <div className="grid grid-cols-6 grid-rows-3 border-2 border-black gap-0">
-          {[...Array(18)].map((_, i) => (
-            <div key={i} className="border border-black"></div>
+          {eastGridPositions.map((pos) => (
+            <div
+              key={pos.id + pos.color}
+              className="relative flex items-center justify-center border border-black"
+              style={{
+                backgroundColor: pos.color, // Apply color based on grid position
+              }}
+            >
+              {/* Show position number in the corner */}
+              {/* <span className="absolute text-xs top-1 left-1">{pos.id}</span> */}
+
+              {/* Render coins if any coin's position matches the grid cell's position */}
+              {renderCoinsInPosition(pos.id, pos.color)}
+            </div>
           ))}
         </div>
 
@@ -98,8 +255,20 @@ const Board = ({
 
         {/* Empty Space */}
         <div className="grid grid-cols-3 grid-rows-6 border-2 border-black gap-0">
-          {[...Array(18)].map((_, i) => (
-            <div key={i} className="border border-black"></div>
+          {southGridPositions.map((pos) => (
+            <div
+              key={pos.id + pos.color}
+              className="relative flex items-center justify-center border border-black"
+              style={{
+                backgroundColor: pos.color, // Apply color based on grid position
+              }}
+            >
+              {/* Show position number in the corner */}
+              {/* <span className="absolute text-xs top-1 left-1">{pos.id}</span> */}
+
+              {/* Render coins if any coin's position matches the grid cell's position */}
+              {renderCoinsInPosition(pos.id, pos.color)}
+            </div>
           ))}
         </div>
 

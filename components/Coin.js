@@ -3,7 +3,7 @@ const Coin = ({ coin, onMoveCoin, steps }) => {
     onMoveCoin(coin.id, steps); // Call move coin when clicked
   };
 
-  const colors = ["red", "green", "yellow", "blue"];
+  const colors = ["#7f1d1d", "#14532d", "#ca8a04", "#1e3a8a"];
   return (
     <div
       className={`flex items-center justify-center w-8 h-8 rounded-full`}
