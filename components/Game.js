@@ -6,6 +6,7 @@ const Game = () => {
   const [gameState, setGameState] = useState(null); // Holds the game state (positions of all coins)
   const [currentPlayer, setCurrentPlayer] = useState(null); // Track whose turn it is
   const [diceValue, setDiceValue] = useState(null); // Track the value of the dice roll
+  const [coinMoved, setCoinMoved] = useState(false); // New state to track if a coin has been moved
 
   // Load initial game state on mount
   useEffect(() => {
@@ -42,6 +43,7 @@ const Game = () => {
       if (playerTurn !== playerNo) {
         setCurrentPlayer(playerTurn); // Switch to next player
       } else {
+        setCoinMoved(false);
         alert(`You rolled a ${value}, now move a coin!`);
       }
     } catch (error) {
@@ -56,11 +58,10 @@ const Game = () => {
         cid: coinId,
         steps: steps,
       });
-      const { coinInfo, nextTurn } = response.data;
+      const { updatedCoinsInfo, nextTurn } = response.data;
 
-      setGameState((prevGameState) =>
-        prevGameState.map((coin) => (coin.id === coinId ? coinInfo : coin))
-      );
+      setGameState(updatedCoinsInfo);
+      setCoinMoved(true);
 
       if (nextTurn === currentPlayer) {
         alert("You get another turn!");
@@ -78,6 +79,7 @@ const Game = () => {
         gameState={gameState}
         currentPlayer={currentPlayer}
         diceValue={diceValue}
+        coinMoved={coinMoved}
         onDiceRoll={handleDiceRoll}
         onMoveCoin={handleMoveCoin}
       />

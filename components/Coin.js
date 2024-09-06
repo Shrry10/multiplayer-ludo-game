@@ -10,7 +10,7 @@ const Coin = ({ coin, onMoveCoin, steps }) => {
       style={{ backgroundColor: colors[coin.player - 1] }}
       onClick={handleClick}
     >
-      <span className="text-white font-bold">C</span>{" "}
+      <span className="text-white font-bold"></span>{" "}
       {/* Coin representation */}
     </div>
   );

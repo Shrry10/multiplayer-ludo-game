@@ -5,6 +5,7 @@ const Board = ({
   gameState,
   currentPlayer,
   diceValue,
+  coinMoved,
   onDiceRoll,
   onMoveCoin,
 }) => {
@@ -128,7 +129,7 @@ const Board = ({
   // Function to find coins at a specific position and render them
   const renderCoinsInPosition = (position, color) => {
     let home = color === "white" ? 0 : 1;
-    const colors = ["#dc2626", "#16a34a", "#facc15", "##3b82f6"];
+    const colors = ["#dc2626", "#16a34a", "#facc15", "#3b82f6"];
     const coinsAtPosition = gameState.filter((coin) => {
       if (home === 1) {
         return (
@@ -170,6 +171,7 @@ const Board = ({
             currentPlayer={currentPlayer}
             diceValue={diceValue}
             onDiceRoll={onDiceRoll}
+            disabled={!coinMoved || currentPlayer !== index + 1} // Disable dice if coin hasn't moved or it's not the current player's turn
           />
         ))}
       </div>
