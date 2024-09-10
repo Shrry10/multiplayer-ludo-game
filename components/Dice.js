@@ -1,4 +1,11 @@
-const Dice = ({ playerNo, color, currentPlayer, diceValue, onDiceRoll }) => {
+const Dice = ({
+  playerNo,
+  color,
+  currentPlayer,
+  diceValue,
+  onDiceRoll,
+  disabled,
+}) => {
   const handleDiceClick = () => {
     if (currentPlayer === playerNo) {
       onDiceRoll(playerNo); // Roll dice if it's the player's turn
@@ -8,7 +15,10 @@ const Dice = ({ playerNo, color, currentPlayer, diceValue, onDiceRoll }) => {
   };
 
   return (
-    <div className="flex flex-col items-center" onClick={handleDiceClick}>
+    <div
+      className="flex flex-col items-center"
+      onClick={disabled ? () => {} : handleDiceClick}
+    >
       <div
         className={`flex items-center justify-center w-12 h-12 bg-white rounded-lg border-2 border-black cursor-pointer ${
           currentPlayer === playerNo ? "" : "opacity-50"

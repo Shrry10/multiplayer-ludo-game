@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Board from "./Board";
 
-const Game = () => {
+const Game = ({ gameid }) => {
   const [gameState, setGameState] = useState(null); // Holds the game state (positions of all coins)
   const [currentPlayer, setCurrentPlayer] = useState(null); // Track whose turn it is
   const [diceValue, setDiceValue] = useState(null); // Track the value of the dice roll
-  const [coinMoved, setCoinMoved] = useState(false); // New state to track if a coin has been moved
+  const [coinMoved, setCoinMoved] = useState(true); // New state to track if a coin has been moved
 
   // Load initial game state on mount
   useEffect(() => {
@@ -17,7 +17,7 @@ const Game = () => {
   const loadGameState = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/game/10/gameState"
+        `http://localhost:5000/game/${gameid}/gameState`
       );
       setGameState(response.data.coinInfo); // Set positions of all coins
       setCurrentPlayer(response.data.nextTurn); // Set which player will play next
@@ -34,9 +34,12 @@ const Game = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/game/10/dice", {
-        playerTurn: playerNo,
-      });
+      const response = await axios.post(
+        `http://localhost:5000/game/${gameid}/dice`,
+        {
+          playerTurn: playerNo,
+        }
+      );
       const { value, playerTurn } = response.data;
 
       setDiceValue(value);
@@ -54,10 +57,13 @@ const Game = () => {
   // Handles moving a coin
   const handleMoveCoin = async (coinId, steps) => {
     try {
-      const response = await axios.put("http://localhost:5000/game/10/update", {
-        cid: coinId,
-        steps: steps,
-      });
+      const response = await axios.put(
+        `http://localhost:5000/game/${gameid}/update`,
+        {
+          cid: coinId,
+          steps: steps,
+        }
+      );
       const { updatedCoinsInfo, nextTurn } = response.data;
 
       setGameState(updatedCoinsInfo);
