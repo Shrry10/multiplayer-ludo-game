@@ -119,9 +119,15 @@ module.exports = {
       [gameid, playerno[0], playerno[1], playerno[2], playerno[3]]
     );
 
+    const turnUpdate = await pool.query(
+      "INSERT INTO turn (game_id) VALUES ($1) RETURNING *;",
+      [gameid]
+    );
+
     res.status(200).json({
       message: "game started successfully",
       playerInfo: playerInfo.rows,
+      nextTurn: turnUpdate.rows[0].player
     });
   },
 
