@@ -1,5 +1,28 @@
 const pool = require("../db");
 
+const safePositions = [0, 8, 13, 21, 26, 34, 39, 47];
+
+const isGameOver = async (gameid) => {
+  const count = await pool.query(
+    "SELECT COUNT(*) FROM player WHERE status = 'finished' AND game_id = $1;",
+    [gameid]
+  );
+  if (count.rows[0].count >= 3) {
+    return true;
+  }
+  return false;
+};
+
+const getAllNames = async (gameid) => {
+  const playerInfo = await pool.query(
+    "SELECT username FROM player WHERE game_id = $1 ORDER BY join_ts;",
+    [gameid]
+  );
+  const names = playerInfo.rows;
+
+  return names;
+};
+
 const getAllCoins = async (gameid) => {
   const coinInfo = await pool.query(
     "SELECT * FROM coin WHERE game_id = $1 ORDER BY player;",
@@ -127,7 +150,7 @@ module.exports = {
     res.status(200).json({
       message: "game started successfully",
       playerInfo: playerInfo.rows,
-      nextTurn: turnUpdate.rows[0].player
+      nextTurn: turnUpdate.rows[0].player,
     });
   },
 
@@ -182,6 +205,19 @@ module.exports = {
       return;
     }
 
+    // verify if the right player is clicking the coin
+    const userid = req.user.userId;
+    const user_coin = await pool.query(
+      "SELECT user_id FROM coin WHERE id = $1 AND game_id = $2;",
+      [coinid, gameid]
+    );
+    if (user_coin.rows[0].user_id !== userid) {
+      res.status(400).json({
+        message: `bad request! not your turn`,
+      });
+      return;
+    }
+
     // verify if the value is between 1-6
     if (steps < 1 || steps > 6) {
       res.status(400).json({
@@ -202,6 +238,7 @@ module.exports = {
         );
         res.status(200).json({
           message: "coin moved to the start",
+          gameOver: false,
           updatedCoinsInfo: await getAllCoins(gameid),
           nextTurn: playerno,
         });
@@ -228,6 +265,7 @@ module.exports = {
           let next_player_turn = await changeTurn(gameid, playerno);
           res.status(200).json({
             message: `coin moved ${steps} steps`,
+            gameOver: false,
             updatedCoinsInfo: await getAllCoins(gameid),
             nextTurn: next_player_turn,
           });
@@ -245,15 +283,35 @@ module.exports = {
             "SELECT COUNT(*) FROM coin WHERE position = -2 AND game_id = $1 AND player = $2;",
             [gameid, playerno]
           );
-          if (coin_home.rows[0].count === 4) {
+          if (coin_home.rows[0].count == 4) {
             await pool.query(
               "UPDATE player SET status = 'finished', leave_ts = EXTRACT(EPOCH FROM NOW()) WHERE game_id = $1 AND user_id = $2;",
               [gameid, coinInfo.rows[0].user_id]
             );
             next_player_turn = await changeTurn(gameid, playerno);
+            if (await isGameOver(gameid)) {
+              await pool.query(
+                "UPDATE player SET status = 'finished', leave_ts = EXTRACT(EPOCH FROM NOW()) WHERE game_id = $1 AND status = 'in-progress';",
+                [gameid]
+              );
+              await pool.query(
+                "UPDATE game SET status = 'finished' WHERE id = $1;",
+                [gameid]
+              );
+              const results = await pool.query(
+                "SELECT * FROM player WHERE game_id = $1 ORDER BY leave_ts;",
+                [gameid]
+              );
+              return res.status(200).json({
+                message: "game over!",
+                gameOver: true,
+                rankings: results.rows,
+              });
+            }
           }
           res.status(200).json({
             message: "coin reached finish",
+            gameOver: false,
             updatedCoinsInfo: await getAllCoins(gameid),
             nextTurn: next_player_turn,
           });
@@ -285,6 +343,7 @@ module.exports = {
             next_player_turn = await changeTurn(gameid, playerno);
           res.status(200).json({
             message: `coin moved ${steps} steps and entered home path`,
+            gameOver: false,
             updatedCoinsInfo: await getAllCoins(gameid),
             nextTurn: next_player_turn,
           });
@@ -308,9 +367,29 @@ module.exports = {
               [gameid, coinInfo.rows[0].user_id]
             );
             next_player_turn = await changeTurn(gameid, playerno);
+            if (await isGameOver(gameid)) {
+              await pool.query(
+                "UPDATE player SET status = 'finished', leave_ts = EXTRACT(EPOCH FROM NOW()) WHERE game_id = $1 AND status = 'in-progress';",
+                [gameid]
+              );
+              await pool.query(
+                "UPDATE game SET status = 'finished' WHERE game_id = $1;",
+                [gameid]
+              );
+              const results = await pool.query(
+                "SELECT * FROM player WHERE game_id = $1 ORDER BY leave_ts;",
+                [gameid]
+              );
+              return res.status(200).json({
+                message: "game over!",
+                gameOver: true,
+                rankings: results.rows,
+              });
+            }
           }
           res.status(200).json({
             message: "coin reached finish",
+            gameOver: false,
             updatedCoinsInfo: await getAllCoins(gameid),
             nextTurn: next_player_turn,
           });
@@ -325,16 +404,19 @@ module.exports = {
           );
           let next_player_turn = playerno;
           // if cuts a coin, update the cut coin
-          const cut_coin = await pool.query(
-            "UPDATE coin SET position = -1 WHERE in_home = 0 AND game_id = $1 AND player <> $2 AND position = $3 RETURNING *;",
-            [gameid, playerno, new_pos]
-          );
+          const cut_coin = !safePositions.includes(new_pos)
+            ? await pool.query(
+                "UPDATE coin SET position = -1 WHERE in_home = 0 AND game_id = $1 AND player <> $2 AND position = $3 RETURNING *;",
+                [gameid, playerno, new_pos]
+              )
+            : [];
           // response if didn't cut a coin
           if (cut_coin.rows.length === 0) {
             if (steps !== 6)
               next_player_turn = await changeTurn(gameid, playerno);
             res.status(200).json({
               message: `coin moved ${steps} steps`,
+              gameOver: false,
               updatedCoinsInfo: await getAllCoins(gameid),
               nextTurn: next_player_turn,
             });
@@ -344,6 +426,7 @@ module.exports = {
           else {
             res.status(200).json({
               message: `coin moved ${steps} steps and cut a coin`,
+              gameOver: false,
               updatedCoinsInfo: await getAllCoins(gameid),
               nextTurn: next_player_turn,
             });
@@ -401,6 +484,20 @@ module.exports = {
       return;
     }
 
+    // verify if the right player is rolling the dice
+    const userid = req.user.userId;
+    const user_as_player = await pool.query(
+      "SELECT color FROM player WHERE user_id = $1 AND game_id = $2;",
+      [userid, gameid]
+    );
+    const colorsCheck = ["red", "green", "yellow", "blue"];
+    if (colorsCheck[playerno - 1] !== user_as_player.rows[0].color) {
+      res.status(400).json({
+        message: `bad request! not your turn`,
+      });
+      return;
+    }
+
     const roll = Math.floor(Math.random() * 6) + 1;
     const isMovable = await movableCoins(gameid, playerno, roll);
     let next_player_turn = playerno;
@@ -418,15 +515,30 @@ module.exports = {
   gameState: async (req, res) => {
     const gameid = req.params.gid;
 
+    const gameOver = await isGameOver(gameid);
+    if (gameOver == true) {
+      const results = await pool.query(
+        "SELECT * FROM player WHERE game_id = $1 ORDER BY leave_ts;",
+        [gameid]
+      );
+      return res.status(200).json({
+        message: "game over!",
+        gameOver: true,
+        rankings: results.rows,
+      });
+    }
     const coins = await getAllCoins(gameid);
+    const names = await getAllNames(gameid);
     const turnInfo = await pool.query(
       "SELECT * FROM turn WHERE game_id = $1;",
       [gameid]
     );
     const next_player_turn = turnInfo.rows[0].player;
 
-    res.status(200).json({
+    return res.status(200).json({
       coinInfo: coins,
+      gameOver: false,
+      usernames: names,
       nextTurn: next_player_turn,
     });
   },

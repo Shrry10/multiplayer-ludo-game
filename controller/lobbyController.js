@@ -14,7 +14,10 @@ module.exports = {
         });
         return;
       }
-      if (gameInfo.rows[0].status !== "waiting" && gameInfo.rows[0].status !== "ready-to-start") {
+      if (
+        gameInfo.rows[0].status !== "waiting" &&
+        gameInfo.rows[0].status !== "ready-to-start"
+      ) {
         res.status(400).json({
           message: `bad request!`,
         });
@@ -38,7 +41,10 @@ module.exports = {
   },
   joinGame: async (req, res) => {
     try {
-      const userid = req.body.userId;
+      const userid = req.user.userId;
+      const userInfo = await pool.query("SELECT * FROM users WHERE id = $1;", [
+        userid,
+      ]);
 
       /// checking if player is already in a game
       const playerInfo = await pool.query(
@@ -70,8 +76,8 @@ module.exports = {
 
         // New Entry in Player Record
         const player = await pool.query(
-          "INSERT INTO player (user_id, game_id, color, join_ts) VALUES ($1, $2, $3, EXTRACT(EPOCH FROM NOW())) RETURNING *;",
-          [userid, gameId, "red"]
+          "INSERT INTO player (user_id, game_id, color, join_ts, username) VALUES ($1, $2, $3, EXTRACT(EPOCH FROM NOW()), $4) RETURNING *;",
+          [userid, gameId, "red", userInfo.rows[0].username]
         );
 
         res.status(201).json({
@@ -99,8 +105,8 @@ module.exports = {
         );
       }
       const player = await pool.query(
-        "INSERT INTO player (user_id, game_id, color, join_ts) VALUES ($1, $2, $3, EXTRACT(EPOCH FROM NOW())) RETURNING *;",
-        [userid, gameid, color]
+        "INSERT INTO player (user_id, game_id, color, join_ts, username) VALUES ($1, $2, $3, EXTRACT(EPOCH FROM NOW()), $4) RETURNING *;",
+        [userid, gameid, color, userInfo.rows[0].username]
       );
 
       res.status(200).json({
@@ -124,7 +130,10 @@ module.exports = {
         });
         return;
       }
-      if (gameInfo.rows[0].status !== "waiting" && gameInfo.rows[0].status !== "ready-to-start") {
+      if (
+        gameInfo.rows[0].status !== "waiting" &&
+        gameInfo.rows[0].status !== "ready-to-start"
+      ) {
         res.status(400).json({
           message: `bad request!`,
         });
@@ -139,5 +148,19 @@ module.exports = {
     } catch (err) {
       res.status(err.status).json({ message: err.message });
     }
-  }
+  },
+  getUserState: async (req, res) => {
+    const userid = req.user.userId;
+
+    const userInfo = await pool.query(
+      "SELECT * FROM player WHERE user_id = $1 ORDER BY join_ts DESC LIMIT 1;",
+      [userid]
+    );
+    return res
+      .status(200)
+      .json({
+        message: "Sending the user details",
+        userInfo: userInfo.rows[0],
+      });
+  },
 };
