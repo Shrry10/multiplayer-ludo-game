@@ -1,8 +1,11 @@
 import Dice from "./Dice";
 import Coin from "./Coin";
 
+const safePositions = [0, 8, 13, 21, 26, 34, 39, 47];
+
 const Board = ({
   gameState,
+  players,
   currentPlayer,
   diceValue,
   coinMoved,
@@ -185,7 +188,7 @@ const Board = ({
           <div className="absolute left-[-75px] top-1/2 transform -translate-y-1/2">
             <Dice
               playerNo={2}
-              color="green"
+              name={players[1].username}
               currentPlayer={currentPlayer}
               diceValue={diceValue}
               onDiceRoll={onDiceRoll}
@@ -204,8 +207,11 @@ const Board = ({
                 backgroundColor: pos.color, // Apply color based on grid position
               }}
             >
-              {/* Show position number in the corner */}
-              {/* <span className="absolute text-xs top-1 left-1">{pos.id}</span> */}
+              {renderCoinsInPosition(pos.id, pos.color) === null && safePositions.includes(pos.id) ? (
+                <span className="absolute text-3xl font-bold">☆</span>
+              ) : (
+                <span></span>
+              )}
 
               {/* Render coins if any coin's position matches the grid cell's position */}
               {renderCoinsInPosition(pos.id, pos.color)}
@@ -220,7 +226,7 @@ const Board = ({
           <div className="absolute right-[-75px] top-1/2 transform -translate-y-1/2">
             <Dice
               playerNo={3}
-              color="yellow"
+              name={players[2].username}
               currentPlayer={currentPlayer}
               diceValue={diceValue}
               onDiceRoll={onDiceRoll}
@@ -239,8 +245,11 @@ const Board = ({
                 backgroundColor: pos.color, // Apply color based on grid position
               }}
             >
-              {/* Show position number in the corner */}
-              {/* <span className="absolute text-xs top-1 left-1">{pos.id}</span> */}
+              {renderCoinsInPosition(pos.id, pos.color) === null && safePositions.includes(pos.id) ? (
+                <span className="absolute text-3xl font-bold">☆</span>
+              ) : (
+                <span></span>
+              )}
 
               {/* Render coins if any coin's position matches the grid cell's position */}
               {renderCoinsInPosition(pos.id, pos.color)}
@@ -250,7 +259,7 @@ const Board = ({
 
         {/* Center Area */}
         <div className="flex items-center justify-center border-2 border-black bg-purple-500 text-lg font-bold">
-          Center Area
+          Home
         </div>
 
         {/* Empty Space Right */}
@@ -263,9 +272,11 @@ const Board = ({
                 backgroundColor: pos.color, // Apply color based on grid position
               }}
             >
-              {/* Show position number in the corner */}
-              {/* <span className="absolute text-xs top-1 left-1">{pos.id}</span> */}
-
+              {renderCoinsInPosition(pos.id, pos.color) === null && safePositions.includes(pos.id) ? (
+                <span className="absolute text-3xl font-bold">☆</span>
+              ) : (
+                <span></span>
+              )}
               {/* Render coins if any coin's position matches the grid cell's position */}
               {renderCoinsInPosition(pos.id, pos.color)}
             </div>
@@ -279,7 +290,7 @@ const Board = ({
           <div className="absolute left-[-75px] top-1/2 transform -translate-y-1/2">
             <Dice
               playerNo={1}
-              color="red"
+              name={players[0].username}
               currentPlayer={currentPlayer}
               diceValue={diceValue}
               onDiceRoll={onDiceRoll}
@@ -298,8 +309,11 @@ const Board = ({
                 backgroundColor: pos.color, // Apply color based on grid position
               }}
             >
-              {/* Show position number in the corner */}
-              {/* <span className="absolute text-xs top-1 left-1">{pos.id}</span> */}
+              {renderCoinsInPosition(pos.id, pos.color) === null && safePositions.includes(pos.id) ? (
+                <span className="absolute text-3xl font-bold">☆</span>
+              ) : (
+                <span></span>
+              )}
 
               {/* Render coins if any coin's position matches the grid cell's position */}
               {renderCoinsInPosition(pos.id, pos.color)}
@@ -314,7 +328,7 @@ const Board = ({
           <div className="absolute right-[-75px] top-1/2 transform -translate-y-1/2">
             <Dice
               playerNo={4}
-              color="blue"
+              name={players[3].username}
               currentPlayer={currentPlayer}
               diceValue={diceValue}
               onDiceRoll={onDiceRoll}

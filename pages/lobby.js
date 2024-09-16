@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode"; // Correct import for jwt-decode
 
 const Lobby = () => {
   const router = useRouter();
@@ -8,6 +9,43 @@ const Lobby = () => {
   const [game, setGame] = useState(null);
   const [players, setPlayers] = useState([]);
   const [gameReady, setGameReady] = useState(false);
+  const [username, setUsername] = useState("");
+
+  // Load initial player state and decode username on mount
+  useEffect(() => {
+    loadPlayerState();
+    decodeUsernameFromToken();
+  }, []);
+
+  // Decode username from the JWT token
+  const decodeUsernameFromToken = () => {
+    const token = localStorage.getItem("jwtToken");
+    if (token) {
+      const decodedToken = jwtDecode(token);
+      setUsername(`${decodedToken.name}#${decodedToken.userId}`); // Assuming the token contains 'username'
+    }
+  };
+
+  // Fetches the initial game state from the server
+  const loadPlayerState = async () => {
+    try {
+      const token = localStorage.getItem("jwtToken");
+      if (!token) {
+        console.error("No token found, please log in again.");
+        router.push("/"); // Redirect to login page
+        return;
+      }
+
+      const response = await axios.get(`http://localhost:5000/lobby/getUser`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.data.userInfo.status === "in-progress") {
+        router.push(`/ludo/${response.data.userInfo.game_id}`);
+      }
+    } catch (error) {
+      console.error("Error fetching user state:", error);
+    }
+  };
 
   // Function to join or create a game
   const joinOrCreateGame = async () => {
@@ -15,18 +53,35 @@ const Lobby = () => {
 
     try {
       // Fetch a game with 'waiting' status
-      const response = await axios.post(`http://localhost:5000/lobby/join`, {
-        userId: 9,
-      });
+      const token = localStorage.getItem("jwtToken");
+      if (!token) {
+        console.error("No token found, please log in again.");
+        router.push("/"); // Redirect to login page
+        return;
+      }
+
+      const response = await axios.post(
+        `http://localhost:5000/lobby/join`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const gameId = response.data.gameid;
 
       const response2 = await axios.get(
-        `http://localhost:5000/lobby/${gameId}/players`
+        `http://localhost:5000/lobby/${gameId}/players`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setPlayers(response2.data.players);
 
       const response3 = await axios.get(
-        `http://localhost:5000/lobby/${gameId}/game`
+        `http://localhost:5000/lobby/${gameId}/game`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setGame(response3.data.gameInfo);
     } catch (error) {
@@ -42,17 +97,29 @@ const Lobby = () => {
     if (!game) return;
 
     try {
+      const token = localStorage.getItem("jwtToken");
+      if (!token) {
+        console.error("No token found, please log in again.");
+        router.push("/"); // Redirect to login page
+        return;
+      }
+
       const response2 = await axios.get(
-        `http://localhost:5000/lobby/${game.id}/players`
+        `http://localhost:5000/lobby/${game.id}/players`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setPlayers(response2.data.players);
-      console.log(players);
 
       // If the game is full (4 players), redirect to the game
       if (players.length === 4) {
         setGameReady(true);
         const start = await axios.post(
-          `http://localhost:5000/game/${game.id}/start`
+          `http://localhost:5000/game/${game.id}/start`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
 
         // Automatically redirect after 2 seconds
@@ -67,7 +134,7 @@ const Lobby = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="relative flex flex-col items-center justify-center min-h-screen">
       <h1 className="text-3xl font-bold mb-8">Ludo Lobby</h1>
 
       {!game ? (
@@ -111,6 +178,16 @@ const Lobby = () => {
           )}
         </div>
       )}
+
+      {/* Display logged in username at the bottom with fixed positioning */}
+      <div className="fixed bottom-0 left-0 w-full text-center bg-gray-100 py-2">
+        {username && (
+          <p>
+            You are logged in as{" "}
+            <span className="font-semibold">{username}</span>
+          </p>
+        )}
+      </div>
     </div>
   );
 };
