@@ -10,9 +10,6 @@ const generateOTP = () => {
   return a + b + c + d;
 };
 
-// Secret key for JWT
-const secretKey = "shrry";
-
 module.exports = {
   send: async (req, res) => {
     const { email } = req.body;
@@ -66,7 +63,7 @@ module.exports = {
           email: email,
           name: userInfo.rows[0].username,
         },
-        secretKey,
+        process.env.JWT_SECRET,
         { expiresIn: "24h" }
       );
       return res.status(200).json({ success: true, token: token });
@@ -134,7 +131,7 @@ module.exports = {
       // Generate JWT token
       const token = jwt.sign(
         { userId: userInfo.rows[0].id, email: email, name: username },
-        secretKey,
+        process.env.JWT_SECRET,
         { expiresIn: "24h" }
       );
 

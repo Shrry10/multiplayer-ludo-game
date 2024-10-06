@@ -409,7 +409,7 @@ module.exports = {
                 "UPDATE coin SET position = -1 WHERE in_home = 0 AND game_id = $1 AND player <> $2 AND position = $3 RETURNING *;",
                 [gameid, playerno, new_pos]
               )
-            : [];
+            : {rows: []};
           // response if didn't cut a coin
           if (cut_coin.rows.length === 0) {
             if (steps !== 6)
