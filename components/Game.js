@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/router"; // For navigation
 import Board from "./Board";
+const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const Game = ({ gameid }) => {
   const router = useRouter(); // Initialize router
@@ -23,7 +24,7 @@ const Game = ({ gameid }) => {
     try {
       const token = localStorage.getItem("jwtToken");
       const response = await axios.get(
-        `http://localhost:5000/game/${gameid}/gameState`,
+        `${apiUrl}/game/${gameid}/gameState`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -51,7 +52,7 @@ const Game = ({ gameid }) => {
     try {
       const token = localStorage.getItem("jwtToken");
       const response = await axios.post(
-        `http://localhost:5000/game/${gameid}/dice`,
+        `${apiUrl}/game/${gameid}/dice`,
         { playerTurn: playerNo }, // Include playerTurn in the body
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -77,7 +78,7 @@ const Game = ({ gameid }) => {
     try {
       const token = localStorage.getItem("jwtToken");
       const response = await axios.put(
-        `http://localhost:5000/game/${gameid}/update`,
+        `${apiUrl}/game/${gameid}/update`,
         {
           cid: coinId,
           steps: steps,

@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode"; // Correct import for jwt-decode
+const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const Lobby = () => {
   const router = useRouter();
@@ -36,7 +37,7 @@ const Lobby = () => {
         return;
       }
 
-      const response = await axios.get(`http://localhost:5000/lobby/getUser`, {
+      const response = await axios.get(`${apiUrl}/lobby/getUser`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.data.userInfo.status === "in-progress") {
@@ -61,7 +62,7 @@ const Lobby = () => {
       }
 
       const response = await axios.post(
-        `http://localhost:5000/lobby/join`,
+        `${apiUrl}/lobby/join`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -70,7 +71,7 @@ const Lobby = () => {
       const gameId = response.data.gameid;
 
       const response2 = await axios.get(
-        `http://localhost:5000/lobby/${gameId}/players`,
+        `${apiUrl}/lobby/${gameId}/players`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -78,7 +79,7 @@ const Lobby = () => {
       setPlayers(response2.data.players);
 
       const response3 = await axios.get(
-        `http://localhost:5000/lobby/${gameId}/game`,
+        `${apiUrl}/lobby/${gameId}/game`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -105,7 +106,7 @@ const Lobby = () => {
       }
 
       const response2 = await axios.get(
-        `http://localhost:5000/lobby/${game.id}/players`,
+        `${apiUrl}/lobby/${game.id}/players`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -116,7 +117,7 @@ const Lobby = () => {
       if (players.length === 4) {
         setGameReady(true);
         const start = await axios.post(
-          `http://localhost:5000/game/${game.id}/start`,
+          `${apiUrl}/game/${game.id}/start`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
