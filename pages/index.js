@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
+const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const Home = () => {
   const [email, setEmail] = useState("");
@@ -25,8 +26,8 @@ const Home = () => {
   const handleSendOtp = async () => {
     try {
       const url = isSignup
-        ? "http://localhost:5000/authentication/signup" // Signup API
-        : "http://localhost:5000/authentication/login"; // Login OTP API
+        ? `${apiUrl}/authentication/signup` // Signup API
+        : `${apiUrl}/authentication/login`; // Login OTP API
 
       const data = isSignup ? { email, username } : { email }; // Send username only for signup
 
@@ -48,8 +49,8 @@ const Home = () => {
   const handleVerifyOtp = async () => {
     try {
       const url = isSignup
-        ? "http://localhost:5000/authentication/verify-signup-otp"
-        : "http://localhost:5000/authentication/verify-login-otp";
+        ? `${apiUrl}/authentication/verify-signup-otp`
+        : `${apiUrl}/authentication/verify-login-otp`;
 
         const data = isSignup ? { email, username, otp } : { email, otp }; // Send username only for signup
 
