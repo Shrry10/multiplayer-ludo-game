@@ -19,7 +19,7 @@ COPY . .
 EXPOSE 5000
 
 # Copy the .env file from the secret mount to the working directory
-RUN --mount=type=secret,id=_env cp /etc/secrets/.env .env
+RUN --mount=type=secret,id=_env,dst=/etc/secrets/.env cp /etc/secrets/.env .env
 
 # Command to run the application
 CMD ["npm", "start"]
