@@ -126,9 +126,14 @@ module.exports = {
       [gameid]
     );
 
+    const playerUpdate = await pool.query(
+      "UPDATE player SET status = 'in-progress' WHERE game_id = $1;",
+      [gameid]
+    );
+
     // create 16 coins
     const playerInfo = await pool.query(
-      "SELECT * FROM player WHERE game_id = $1;",
+      "SELECT * FROM player WHERE game_id = $1 ORDER BY id;",
       [gameid]
     );
     const playerno = [
