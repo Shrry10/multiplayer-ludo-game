@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode"; // Correct import for jwt-decode
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -13,9 +13,17 @@ const Lobby = () => {
   const [username, setUsername] = useState("");
 
   // Load initial player state and decode username on mount
+  const hasMounted = useRef(false);
+
   useEffect(() => {
+    if (hasMounted.current) {
+      return;
+    }
+
     loadPlayerState();
     decodeUsernameFromToken();
+
+    hasMounted.current = true;
   }, []);
 
   // Decode username from the JWT token
@@ -42,6 +50,18 @@ const Lobby = () => {
       });
       if (response.data.userInfo.status === "in-progress") {
         router.push(`/ludo/${response.data.userInfo.game_id}`);
+      } else {
+        const gameId = response.data.userInfo.game_id;
+
+        const response2 = await axios.get(`${apiUrl}/lobby/${gameId}/players`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setPlayers(response2.data.players);
+
+        const response3 = await axios.get(`${apiUrl}/lobby/${gameId}/game`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setGame(response3.data.gameInfo);
       }
     } catch (error) {
       console.error("Error fetching user state:", error);
@@ -70,20 +90,14 @@ const Lobby = () => {
       );
       const gameId = response.data.gameid;
 
-      const response2 = await axios.get(
-        `${apiUrl}/lobby/${gameId}/players`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response2 = await axios.get(`${apiUrl}/lobby/${gameId}/players`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setPlayers(response2.data.players);
 
-      const response3 = await axios.get(
-        `${apiUrl}/lobby/${gameId}/game`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response3 = await axios.get(`${apiUrl}/lobby/${gameId}/game`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setGame(response3.data.gameInfo);
     } catch (error) {
       console.error("Failed to join or create game:", error);
@@ -105,28 +119,36 @@ const Lobby = () => {
         return;
       }
 
-      const response2 = await axios.get(
-        `${apiUrl}/lobby/${game.id}/players`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setPlayers(response2.data.players);
-
-      // If the game is full (4 players), redirect to the game
-      if (players.length === 4) {
-        setGameReady(true);
-        const start = await axios.post(
-          `${apiUrl}/game/${game.id}/start`,
+      const response = await axios.get(`${apiUrl}/lobby/getUser`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.data.userInfo.status === "in-progress") {
+        router.push(`/ludo/${response.data.userInfo.game_id}`);
+      } else {
+        const response2 = await axios.get(
+          `${apiUrl}/lobby/${game.id}/players`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
+        setPlayers(response2.data.players);
 
-        // Automatically redirect after 2 seconds
-        setTimeout(() => {
-          router.push(`/ludo/${game.id}`);
-        }, 2000);
+        // If the game is full (4 players), redirect to the game
+        if (players.length === 4) {
+          setGameReady(true);
+          const start = await axios.post(
+            `${apiUrl}/game/${game.id}/start`,
+            {},
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+
+          // Automatically redirect after 2 seconds
+          setTimeout(() => {
+            router.push(`/ludo/${game.id}`);
+          }, 1000);
+        }
       }
     } catch (error) {
       console.error("Failed to refresh game state:", error);
